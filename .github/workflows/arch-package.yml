@@ -1,0 +1,28 @@
+name: Build Arch package
+
+on:
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install package build tools
+        run: pacman -Syu --noconfirm base-devel sudo curl
+      - uses: actions/checkout@v4
+      - name: Fetch release payload and build package
+        working-directory: packaging/arch
+        run: |
+          curl -fL --retry 3 --retry-delay 2 \
+            -o NovaPlayer-linux-x64.tar.gz \
+            https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.0/NovaPlayer-linux-x64.tar.gz
+          useradd --create-home builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          sudo -u builder -- makepkg --noconfirm --nodeps --cleanbuild
+      - name: Upload Arch package
+        uses: actions/upload-artifact@v4
+        with:
+          name: novaplayer-arch-x86_64
+          path: packaging/arch/*.pkg.tar.zst
+          if-no-files-found: error
