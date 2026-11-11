@@ -4,6 +4,12 @@
 
 NovaPlayer is a dark, cinematic desktop media player using LibVLC for playback. It pairs a custom Windows 11 WPF interface with a Linux Avalonia target for Arch Linux and CachyOS. Both use the same LibVLC engine family and local SQLite library database.
 
+## Downloads
+
+- [Windows x64 installer bundle](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.0/NovaPlayer-Windows-x64.zip)
+- [Arch Linux / CachyOS x64 package bundle](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.0/NovaPlayer-Arch-x64.zip)
+- [Linux x64 portable payload](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.0/NovaPlayer-linux-x64.tar.gz)
+
 ## Install on Windows 10/11 x64
 
 1. Download and extract `NovaPlayer-Windows-x64.zip`.
