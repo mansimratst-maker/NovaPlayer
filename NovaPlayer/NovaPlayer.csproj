@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>NovaPlayer</AssemblyName>
+    <RootNamespace>NovaPlayer</RootNamespace>
+    <Version>1.0.0</Version>
+    <PublishSingleFile>false</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <ApplicationIcon>Assets\novaplayer.ico</ApplicationIcon>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="LibVLCSharp.WPF" Version="3.10.2" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\novaplayer.ico" />
+    <Content Include="Assets\novaplayer.svg" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

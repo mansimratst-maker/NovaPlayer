@@ -1,0 +1,13 @@
+<Application x:Class="NovaPlayer.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:converters="clr-namespace:NovaPlayer.Converters" ShutdownMode="OnMainWindowClose">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="Styles/Theme.xaml" /></ResourceDictionary.MergedDictionaries>
+      <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+      <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+      <converters:PlayGlyphConverter x:Key="PlayGlyphConverter" />
+      <converters:PlaylistWidthConverter x:Key="PlaylistWidthConverter" />
+      <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+      <converters:NullOverlayVisibilityConverter x:Key="NullOverlayVisibilityConverter" />
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

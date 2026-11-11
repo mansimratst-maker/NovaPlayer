@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=NovaPlayer
+GenericName=Media Player
+Comment=Every Frame. Every Sound. Beautifully Played.
+Exec=/opt/novaplayer/NovaPlayer.Linux %U
+Icon=novaplayer
+Terminal=false
+Categories=AudioVideo;Player;Video;Audio;
+MimeType=video/mp4;video/x-matroska;video/x-msvideo;video/quicktime;audio/mpeg;audio/flac;audio/x-wav;audio/ogg;
+StartupNotify=true

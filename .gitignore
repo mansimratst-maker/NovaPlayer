@@ -1,0 +1,11 @@
+.vs/
+**/bin/
+**/obj/
+dist/
+packaging/arch/*.tar.gz
+packaging/arch/*.pkg.tar.zst
+outputs/
+work/
+*.user
+*.suo
+*.log
