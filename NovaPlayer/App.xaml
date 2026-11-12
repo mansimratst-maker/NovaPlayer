@@ -8,6 +8,8 @@
       <converters:PlaylistWidthConverter x:Key="PlaylistWidthConverter" />
       <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
       <converters:NullOverlayVisibilityConverter x:Key="NullOverlayVisibilityConverter" />
+      <converters:AudioMediaVisibilityConverter x:Key="AudioMediaVisibilityConverter" />
+      <converters:MediaTypeIconConverter x:Key="MediaTypeIconConverter" />
     </ResourceDictionary>
   </Application.Resources>
 </Application>

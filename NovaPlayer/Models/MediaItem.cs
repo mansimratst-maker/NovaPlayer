@@ -7,6 +7,7 @@ public partial class MediaItem : ObservableObject
     public string Path { get; set; } = "";
     public string Title => System.IO.Path.GetFileNameWithoutExtension(Path);
     public string Extension => System.IO.Path.GetExtension(Path).TrimStart('.').ToUpperInvariant();
+    public bool IsAudio => System.IO.Path.GetExtension(Path).ToLowerInvariant() is ".mp3" or ".flac" or ".wav" or ".aac" or ".m4a" or ".ogg" or ".wma" or ".alac" or ".opus";
     public long SizeBytes { get; set; }
     public DateTime AddedAt { get; set; } = DateTime.UtcNow;
     public long DurationMs { get; set; }

@@ -31,6 +31,9 @@ public partial class MainWindow : Window
     private const uint SwpNoOwnerZOrder = 0x0200;
     private const uint SwpFrameChanged = 0x0020;
     private const uint SwpShowWindow = 0x0040;
+    private const int DwmwaSystemBackdropType = 38;
+    private const int DwmwaUseImmersiveDarkMode = 20;
+    private const int DwmBackdropAcrylic = 3;
     private static readonly nint HwndTopmost = new(-1);
     private static readonly nint HwndNotTopmost = new(-2);
     [StructLayout(LayoutKind.Sequential)] internal struct RECT { public int Left, Top, Right, Bottom; }
@@ -41,7 +44,9 @@ public partial class MainWindow : Window
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT point);
     [DllImport("user32.dll", SetLastError = true)] private static extern bool GetWindowRect(nint hwnd, out RECT rect);
     [DllImport("user32.dll", SetLastError = true)] private static extern bool SetWindowPos(nint hwnd, nint insertAfter, int x, int y, int cx, int cy, uint flags);
+    [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(nint hwnd, int attribute, ref int value, int valueSize);
     private readonly DispatcherTimer _controlTimer = new() { Interval = TimeSpan.FromMilliseconds(120) };
+    private readonly Dictionary<UIElement, bool> _overlayVisibilityTargets = new();
     private POINT _lastCursorPosition;
     private DateTime _lastControlActivity = DateTime.UtcNow;
     private string _scaleMode = "Fit";
@@ -50,11 +55,14 @@ public partial class MainWindow : Window
     private PictureInPictureWindow? _pipWindow;
     private Point _queueDragPoint;
     private bool _closing;
+    private FullscreenOverlayWindow? _fullscreenOverlayWindow;
+    private Grid? _fullscreenOverlayOriginalParent;
     public MainWindow(MainViewModel vm)
     {
         InitializeComponent(); _vm = vm; DataContext = vm;
+        SourceInitialized += (_, _) => ApplyLiquidGlassBackdrop(DwmBackdropAcrylic);
         StateChanged += (_, _) => { if (MaximizeGlyph is not null) MaximizeGlyph.Kind = WindowState == WindowState.Maximized ? "restore" : "maximize"; };
-        Closing += (_, _) => { _closing = true; _pipWindow?.Close(); _controlTimer.Stop(); };
+        Closing += (_, _) => { _closing = true; DetachFullscreenOverlay(); _pipWindow?.Close(); _controlTimer.Stop(); };
         _controlTimer.Tick += (_, _) => PollFullscreenInteraction();
         ComponentDispatcher.ThreadPreprocessMessage += ThreadPreprocessMessage;
         _vm.PropertyChanged += (_, e) =>
@@ -74,12 +82,27 @@ public partial class MainWindow : Window
         Loaded += (_, _) => RefreshPlaybackOverlays();
         RefreshPlaybackOverlays();
     }
+    private void ApplyLiquidGlassBackdrop(int backdropType)
+    {
+        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000)) return;
+        try
+        {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            var dark = 1;
+            _ = DwmSetWindowAttribute(hwnd, DwmwaUseImmersiveDarkMode, ref dark, sizeof(int));
+            if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22621))
+                _ = DwmSetWindowAttribute(hwnd, DwmwaSystemBackdropType, ref backdropType, sizeof(int));
+        }
+        catch (DllNotFoundException) { }
+        catch (EntryPointNotFoundException) { }
+    }
     private void SetFullscreen(bool full)
     {
         if (!full)
         {
             _controlTimer.Stop();
             Cursor = Cursors.Arrow;
+            DetachFullscreenOverlay();
             _vm.HideFullscreenControls();
             if (!_fullscreenLayoutSaved) return;
 
@@ -87,6 +110,7 @@ public partial class MainWindow : Window
             WindowStyle = _restoreStyle;
             ResizeMode = _restoreResizeMode;
             Topmost = _restoreTopmost;
+            ApplyLiquidGlassBackdrop(DwmBackdropAcrylic);
             RootBorder.BorderThickness = _restoreRootBorderThickness;
             RootBorder.CornerRadius = _restoreRootCornerRadius;
             RootBorder.Background = (Brush)FindResource("Canvas");
@@ -176,12 +200,16 @@ public partial class MainWindow : Window
         }
         var bounds = info.rcMonitor;
         var dpi = VisualTreeHelper.GetDpi(this);
+        // Fullscreen is based on the monitor surface, not on source pixel size.
+        // LibVLC scales 480p/720p sources to the output; Fit preserves AR while
+        // Fill deliberately crops to the display ratio (default fullscreen choice).
         _fullscreenCropGeometry = $"{Math.Max(1, bounds.Right - bounds.Left)}:{Math.Max(1, bounds.Bottom - bounds.Top)}";
 
         WindowState = WindowState.Normal;
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
         Topmost = true;
+        ApplyLiquidGlassBackdrop(1); // Disable Mica behind the immersive video surface.
         Background = Brushes.Black;
         RootBorder.BorderThickness = new Thickness(0);
         RootBorder.CornerRadius = new CornerRadius(0);
@@ -227,8 +255,11 @@ public partial class MainWindow : Window
                     SetWindowPos(handle, HwndTopmost, bounds.Left, bounds.Top, monitorWidth, monitorHeight,
                         SwpNoOwnerZOrder | SwpFrameChanged | SwpShowWindow);
                 UpdateLayout();
+                AttachFullscreenOverlay(bounds);
                 _fullscreenCropGeometry = $"{Math.Max(1, (int)PrimaryVideoView.ActualWidth)}:{Math.Max(1, (int)PrimaryVideoView.ActualHeight)}";
                 ApplyVideoScale();
+                Activate();
+                Keyboard.Focus(PlayerGrid);
                 ShowFullscreenControls();
             }), DispatcherPriority.ContextIdle);
         }), DispatcherPriority.Loaded);
@@ -242,9 +273,9 @@ public partial class MainWindow : Window
         if ((Keyboard.Modifiers & ModifierKeys.Control) != 0 && e.Key == Key.O) { _vm.OpenFileCommand.Execute(null); e.Handled = true; return; }
         switch (e.Key)
         {
-            case Key.Space: _vm.TogglePlayPauseCommand.Execute(null); e.Handled = true; break;
-            case Key.Left: _vm.SeekCommand.Execute(-10000d); e.Handled = true; break;
-            case Key.Right: _vm.SeekCommand.Execute(10000d); e.Handled = true; break;
+            case Key.Space: TogglePlaybackWithFeedback(); e.Handled = true; break;
+            case Key.Left: SeekWithFeedback(-10_000d); e.Handled = true; break;
+            case Key.Right: SeekWithFeedback(10_000d); e.Handled = true; break;
             case Key.Up: _vm.Volume = Math.Min(100, _vm.Volume + 5); e.Handled = true; break;
             case Key.Down: _vm.Volume = Math.Max(0, _vm.Volume - 5); e.Handled = true; break;
             case Key.F: _vm.ToggleFullscreenCommand.Execute(null); e.Handled = true; break;
@@ -257,9 +288,17 @@ public partial class MainWindow : Window
     }
     private void Window_MouseMove(object sender, MouseEventArgs e)
     {
-        // Fullscreen uses only the global cursor poll below. Routed WPF MouseMove
-        // can be synthesized when VLC and the overlay exchange native hit testing.
-        if (_vm.IsFullscreen) return;
+        // The native LibVLC child can bypass routed input, so the global poll
+        // remains the fallback. If WPF receives an actual fullscreen move,
+        // reveal controls immediately. The movement threshold rejects synthetic
+        // hit-test churn caused by the overlay appearing.
+        if (_vm.IsFullscreen)
+        {
+            if (!GetCursorPos(out var fullscreenPosition) || !IsPositionOverVideoSurface(fullscreenPosition)) return;
+            if (Math.Abs(fullscreenPosition.X - _lastCursorPosition.X) < 3 && Math.Abs(fullscreenPosition.Y - _lastCursorPosition.Y) < 3) return;
+            RegisterPlayerInteraction();
+            return;
+        }
         if (!IsPointerOverVideoSurface()) return;
         if (!GetCursorPos(out var position)) return;
         if (Math.Abs(position.X - _lastCursorPosition.X) < 3 && Math.Abs(position.Y - _lastCursorPosition.Y) < 3) return;
@@ -284,6 +323,46 @@ public partial class MainWindow : Window
         if (!_controlTimer.IsEnabled) _controlTimer.Start();
     }
 
+    internal void RegisterOverlayActivity() => RegisterPlayerInteraction();
+
+    private void AttachFullscreenOverlay(RECT monitorBounds)
+    {
+        if (_fullscreenOverlayWindow is not null) return;
+        _fullscreenOverlayOriginalParent = PlaybackDock.Parent as Grid;
+        if (_fullscreenOverlayOriginalParent is null) return;
+
+        // LibVLC's native video surface owns a separate HWND. Put the controls
+        // in an owned transparent window so they always compose above the video,
+        // just like the floating transport overlay in Windows Media Player.
+        _fullscreenOverlayOriginalParent.Children.Remove(PlaybackHeader);
+        _fullscreenOverlayOriginalParent.Children.Remove(PlaybackDock);
+        _fullscreenOverlayWindow = new FullscreenOverlayWindow(this, _vm);
+        _fullscreenOverlayWindow.MatchOwnerBounds(monitorBounds);
+        _fullscreenOverlayWindow.Surface.Children.Add(PlaybackHeader);
+        _fullscreenOverlayWindow.Surface.Children.Add(PlaybackDock);
+        _fullscreenOverlayWindow.Show();
+        var overlayHandle = new WindowInteropHelper(_fullscreenOverlayWindow).Handle;
+        SetWindowPos(overlayHandle, HwndTopmost, monitorBounds.Left, monitorBounds.Top,
+            monitorBounds.Right - monitorBounds.Left, monitorBounds.Bottom - monitorBounds.Top,
+            SwpNoOwnerZOrder | SwpFrameChanged | SwpShowWindow | 0x0010 /* SWP_NOACTIVATE */);
+        _fullscreenOverlayWindow.UpdateLayout();
+    }
+
+    private void DetachFullscreenOverlay()
+    {
+        if (_fullscreenOverlayWindow is null) return;
+        _fullscreenOverlayWindow.Surface.Children.Remove(PlaybackHeader);
+        _fullscreenOverlayWindow.Surface.Children.Remove(PlaybackDock);
+        _fullscreenOverlayWindow.Close();
+        _fullscreenOverlayWindow = null;
+        if (_fullscreenOverlayOriginalParent is not null)
+        {
+            _fullscreenOverlayOriginalParent.Children.Add(PlaybackHeader);
+            _fullscreenOverlayOriginalParent.Children.Add(PlaybackDock);
+            _fullscreenOverlayOriginalParent = null;
+        }
+    }
+
     // LibVLC's video output is a native child window. WPF routed input can miss
     // events while that child owns focus, so monitor thread keyboard messages.
     private void ThreadPreprocessMessage(ref MSG msg, ref bool handled)
@@ -299,8 +378,22 @@ public partial class MainWindow : Window
     // coordinates so player shortcuts still work when the search box last had focus.
     private bool IsPointerOverVideoSurface()
     {
-        if (_vm.IsFullscreen) return true;
-        if (PrimaryVideoView.ActualWidth <= 0 || PrimaryVideoView.ActualHeight <= 0 || !GetCursorPos(out var cursor)) return false;
+        if (!GetCursorPos(out var cursor)) return false;
+        return IsPositionOverVideoSurface(cursor);
+    }
+
+    private bool IsPositionOverVideoSurface(POINT cursor)
+    {
+        if (_vm.IsFullscreen)
+        {
+            var handle = new WindowInteropHelper(this).Handle;
+            var monitor = MonitorFromWindow(handle, MonitorDefaultToNearest);
+            var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+            return monitor != 0 && GetMonitorInfo(monitor, ref info)
+                && cursor.X >= info.rcMonitor.Left && cursor.X < info.rcMonitor.Right
+                && cursor.Y >= info.rcMonitor.Top && cursor.Y < info.rcMonitor.Bottom;
+        }
+        if (PrimaryVideoView.ActualWidth <= 0 || PrimaryVideoView.ActualHeight <= 0) return false;
         try
         {
             var topLeft = PrimaryVideoView.PointToScreen(new Point(0, 0));
@@ -314,9 +407,9 @@ public partial class MainWindow : Window
     {
         switch (key)
         {
-            case Key.Space: _vm.TogglePlayPauseCommand.Execute(null); break;
-            case Key.Left: _vm.SeekCommand.Execute(-10_000d); break;
-            case Key.Right: _vm.SeekCommand.Execute(10_000d); break;
+            case Key.Space: TogglePlaybackWithFeedback(); break;
+            case Key.Left: SeekWithFeedback(-10_000d); break;
+            case Key.Right: SeekWithFeedback(10_000d); break;
             case Key.Up: _vm.Volume = Math.Min(100, _vm.Volume + 5); break;
             case Key.Down: _vm.Volume = Math.Max(0, _vm.Volume - 5); break;
             case Key.F: _vm.ToggleFullscreenCommand.Execute(null); break;
@@ -328,6 +421,41 @@ public partial class MainWindow : Window
         }
         RegisterPlayerInteraction();
         return true;
+    }
+
+    internal bool HandleFullscreenShortcut(Key key) => _vm.IsFullscreen && HandlePlayerShortcut(key);
+
+    private void TogglePlaybackWithFeedback()
+    {
+        var action = _vm.IsPlaying ? "pause" : "play";
+        _vm.TogglePlayPauseCommand.Execute(null);
+        _fullscreenOverlayWindow?.ShowPlaybackFeedback(action);
+    }
+
+    private void SeekWithFeedback(double deltaMilliseconds)
+    {
+        if (_vm.SeekBy(deltaMilliseconds))
+            _fullscreenOverlayWindow?.ShowPlaybackFeedback(deltaMilliseconds < 0 ? "rewind" : "forward");
+        else
+            _fullscreenOverlayWindow?.ShowPlaybackFeedback("unavailable");
+    }
+
+    private void PlaybackSeekBack_Click(object sender, RoutedEventArgs e)
+    {
+        _fullscreenOverlayWindow?.ShowPlaybackFeedback(_vm.SeekBy(-10_000d) ? "rewind" : "unavailable");
+        RegisterPlayerInteraction();
+    }
+
+    private void PlaybackSeekForward_Click(object sender, RoutedEventArgs e)
+    {
+        _fullscreenOverlayWindow?.ShowPlaybackFeedback(_vm.SeekBy(10_000d) ? "forward" : "unavailable");
+        RegisterPlayerInteraction();
+    }
+
+    private void PlaybackToggle_Click(object sender, RoutedEventArgs e)
+    {
+        TogglePlaybackWithFeedback();
+        RegisterPlayerInteraction();
     }
 
     private void RevealPlayerControls()
@@ -371,6 +499,13 @@ public partial class MainWindow : Window
     {
         if (_vm.CurrentMedia is null) { _controlTimer.Stop(); return; }
         if (!GetCursorPos(out var position)) return;
+        // Activity elsewhere in the desktop must not flash or keep the player
+        // controls alive. The timer observes only NovaPlayer's actual video area.
+        if (!IsPositionOverVideoSurface(position))
+        {
+            if (DateTime.UtcNow - _lastControlActivity >= TimeSpan.FromSeconds(3.5)) HideIdlePlayerControls();
+            return;
+        }
         // WPF/VLC can report a one-pixel cursor wobble while the native video
         // child and overlay exchange hit-testing. Require deliberate movement.
         if (Math.Abs(position.X - _lastCursorPosition.X) >= 3 || Math.Abs(position.Y - _lastCursorPosition.Y) >= 3)
@@ -380,19 +515,25 @@ public partial class MainWindow : Window
             Cursor = Cursors.Arrow;
             RevealPlayerControls();
         }
-        else if (DateTime.UtcNow - _lastControlActivity >= TimeSpan.FromSeconds(6.5))
+        // Paused playback keeps its controls available. While playing, idle
+        // controls fade after 3.5 seconds without cursor movement.
+        else if (DateTime.UtcNow - _lastControlActivity >= TimeSpan.FromSeconds(3.5)) HideIdlePlayerControls();
+    }
+
+    private void HideIdlePlayerControls()
+    {
+        if (_vm.IsFullscreen)
         {
-            _lastControlActivity = DateTime.UtcNow;
-            if (_vm.IsFullscreen)
+            if (_vm.IsFullscreenControlsVisible)
             {
                 _vm.HideFullscreenControls();
                 Cursor = Cursors.None;
             }
-            else
-            {
-                AnimatePlaybackOverlay(PlaybackDock, false);
-                AnimatePlaybackOverlay(PlaybackHeader, false);
-            }
+        }
+        else if (_vm.ArePlaybackControlsVisible)
+        {
+            AnimatePlaybackOverlay(PlaybackDock, false);
+            AnimatePlaybackOverlay(PlaybackHeader, false);
         }
     }
     private void TopBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ClickCount == 2) Maximize_Click(sender, e); else DragMove(); }
@@ -469,14 +610,27 @@ public partial class MainWindow : Window
     {
         var settings = !_vm.IsFullscreen && _vm.CurrentPage == "Settings";
         var playlists = !_vm.IsFullscreen && _vm.CurrentPage == "Playlists";
+        var hidePlayer = settings || playlists;
         SettingsPage.Visibility = settings ? Visibility.Visible : Visibility.Collapsed;
         PlaylistsPage.Visibility = playlists ? Visibility.Visible : Visibility.Collapsed;
-        PlayerGrid.Visibility = settings || playlists ? Visibility.Collapsed : Visibility.Visible;
-        PlaylistPanel.Visibility = settings || playlists || !_vm.IsPlaylistVisible ? Visibility.Collapsed : Visibility.Visible;
+        PlayerGrid.Visibility = hidePlayer ? Visibility.Collapsed : Visibility.Visible;
+        // LibVLC uses a native child HWND, which can remain visible above WPF
+        // pages even after their parent grid is collapsed. Hide the host itself
+        // when navigating to Settings or Playlists; playback can continue audio-only.
+        PrimaryVideoView.Visibility = hidePlayer ? Visibility.Collapsed : Visibility.Visible;
+        PlaylistPanel.Visibility = hidePlayer || !_vm.IsPlaylistVisible ? Visibility.Collapsed : Visibility.Visible;
     }
-    private static void AnimatePlaybackOverlay(UIElement element, bool visible)
+    private void AnimatePlaybackOverlay(UIElement element, bool visible)
     {
+        if (_overlayVisibilityTargets.TryGetValue(element, out var currentTarget) && currentTarget == visible)
+            return;
+        _overlayVisibilityTargets[element] = visible;
+
+        // Keep the in-flight value when reversing a fade. Restarting each
+        // mouse-move from opacity 0 made the controls flicker while hovering.
+        var opacity = element.Opacity;
         element.BeginAnimation(OpacityProperty, null);
+        element.Opacity = opacity;
         var translate = element.RenderTransform as TranslateTransform;
         if (translate is null)
         {
@@ -486,25 +640,37 @@ public partial class MainWindow : Window
         translate.BeginAnimation(TranslateTransform.YProperty, null);
         if (visible)
         {
-            element.Visibility = Visibility.Visible;
-            element.Opacity = 0;
-            element.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(190)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } });
-            translate.Y = 10;
-            translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(10, 0, TimeSpan.FromMilliseconds(240)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
+            if (element.Visibility != Visibility.Visible)
+            {
+                element.Visibility = Visibility.Visible;
+                element.Opacity = 0;
+                opacity = 0;
+            }
+            element.BeginAnimation(OpacityProperty, new DoubleAnimation(opacity, 1, TimeSpan.FromMilliseconds(190)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } });
+            var startY = translate.Y;
+            if (element.Opacity == 0) startY = 10;
+            translate.Y = startY;
+            translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(startY, 0, TimeSpan.FromMilliseconds(240)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
         }
         else
         {
-            var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(150));
-            fade.Completed += (_, _) => { if (element.Opacity <= 0.01) element.Visibility = Visibility.Collapsed; };
+            if (element.Visibility != Visibility.Visible || opacity <= 0.01)
+            {
+                element.Visibility = Visibility.Collapsed;
+                return;
+            }
+            var fade = new DoubleAnimation(opacity, 0, TimeSpan.FromMilliseconds(150));
+            fade.Completed += (_, _) =>
+            {
+                if (_overlayVisibilityTargets.TryGetValue(element, out var target) && !target && element.Opacity <= 0.01)
+                    element.Visibility = Visibility.Collapsed;
+            };
             element.BeginAnimation(OpacityProperty, fade);
-            translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(8, TimeSpan.FromMilliseconds(150)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } });
+            var fromY = translate.Y;
+            translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(fromY, 8, TimeSpan.FromMilliseconds(150)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } });
         }
     }
     private void SettingsBack_Click(object sender, RoutedEventArgs e) => _vm.NavigateCommand.Execute("Home");
-    private void AccentColor_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is System.Windows.Controls.Button { Tag: string color }) _vm.AccentColor = color;
-    }
     private void TogglePictureInPicture_Click(object sender, RoutedEventArgs e)
     {
         if (_pipWindow is not null) { _pipWindow.Close(); return; }

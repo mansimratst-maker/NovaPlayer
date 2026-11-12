@@ -1,22 +1,22 @@
-#define AppName "NovaPlayer"
-#define AppVersion "1.0.3"
-#define SourceDir "..\..\dist\NovaPlayer-Windows-x64\NovaPlayer"
+#define AppName "Nivora Player"
+#define AppVersion "1.1.0"
+#define SourceDir "..\..\dist\NivoraPlayer-Windows-x64\NivoraPlayer"
 
 [Setup]
 AppId={{74C9C7BE-3F30-45A9-A75E-489BD889B607}
 AppName={#AppName}
 AppVersion={#AppVersion}
-AppPublisher=NovaPlayer
+AppPublisher=Nivora Player
 AppPublisherURL=https://github.com/mansimratst-maker/NovaPlayer
 DefaultDirName={localappdata}\Programs\NovaPlayer
-DefaultGroupName=NovaPlayer
+DefaultGroupName=Nivora Player
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\..\dist
-OutputBaseFilename=NovaPlayer-Setup-{#AppVersion}-x64
+OutputBaseFilename=NivoraPlayer-Setup-{#AppVersion}-x64
 SetupIconFile=..\..\NovaPlayer\Assets\novaplayer.ico
-UninstallDisplayIcon={app}\NovaPlayer.exe
+UninstallDisplayIcon={app}\NivoraPlayer.exe
 Compression=lzma2/fast
 SolidCompression=yes
 WizardStyle=modern
@@ -33,9 +33,9 @@ Source: "..\..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\THIRD-PARTY-NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\NovaPlayer"; Filename: "{app}\NovaPlayer.exe"
-Name: "{autodesktop}\NovaPlayer"; Filename: "{app}\NovaPlayer.exe"; Tasks: desktopicon
-Name: "{group}\Uninstall NovaPlayer"; Filename: "{uninstallexe}"
+Name: "{group}\Nivora Player"; Filename: "{app}\NivoraPlayer.exe"
+Name: "{autodesktop}\Nivora Player"; Filename: "{app}\NivoraPlayer.exe"; Tasks: desktopicon
+Name: "{group}\Uninstall Nivora Player"; Filename: "{uninstallexe}"
 
 [Run]
-Filename: "{app}\NovaPlayer.exe"; Description: "Launch NovaPlayer"; Flags: postinstall nowait skipifsilent
+Filename: "{app}\NivoraPlayer.exe"; Description: "Launch Nivora Player"; Flags: postinstall nowait skipifsilent

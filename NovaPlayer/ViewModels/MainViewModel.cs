@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Threading;
-using System.Windows.Media;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -41,7 +40,6 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool hardwareAccelerationEnabled = true;
     [ObservableProperty] private bool rememberPositionEnabled = true;
     [ObservableProperty] private double defaultVolume = 70;
-    [ObservableProperty] private string accentColor = "#7955FF";
     [ObservableProperty] private string savedPlaylistName = "";
     [ObservableProperty] private SavedPlaylist? selectedPlaylist;
     public ObservableCollection<MediaItem> MediaItems { get; } = [];
@@ -108,18 +106,6 @@ public partial class MainViewModel : ObservableObject
         Volume = Math.Clamp(value, 0, 100);
         _ = PersistSettingAsync("DefaultVolume", Math.Round(value).ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
-    partial void OnAccentColorChanged(string value)
-    {
-        try
-        {
-            var color = (Color)ColorConverter.ConvertFromString(value);
-            Application.Current.Resources["AccentColor"] = color;
-            if (Application.Current.Resources["Accent"] is SolidColorBrush brush && !brush.IsFrozen) brush.Color = color;
-            else Application.Current.Resources["Accent"] = new SolidColorBrush(color);
-            _ = PersistSettingAsync("AccentColor", value);
-        }
-        catch { }
-    }
     private async Task PersistSettingAsync(string key, string value)
     {
         try { await _database.SaveSettingAsync(key, value); }
@@ -134,14 +120,12 @@ public partial class MainViewModel : ObservableObject
             var hardware = await _database.GetSettingAsync("HardwareAcceleration");
             var remember = await _database.GetSettingAsync("RememberPosition");
             var volume = await _database.GetSettingAsync("DefaultVolume");
-            var accent = await _database.GetSettingAsync("AccentColor");
             var folders = await _library.GetFoldersAsync();
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 if (bool.TryParse(hardware, out var hw)) HardwareAccelerationEnabled = hw;
                 if (bool.TryParse(remember, out var rp)) RememberPositionEnabled = rp;
                 if (double.TryParse(volume, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v)) DefaultVolume = Math.Clamp(v, 0, 100);
-                if (!string.IsNullOrWhiteSpace(accent)) AccentColor = accent;
                 LibraryFolders.Clear(); foreach (var folder in folders) LibraryFolders.Add(folder);
             });
         }
@@ -161,8 +145,8 @@ public partial class MainViewModel : ObservableObject
         try
         {
             await _database.ClearSettingsAsync();
-            HardwareAccelerationEnabled = true; RememberPositionEnabled = true; DefaultVolume = 70; AccentColor = "#7955FF";
-            StatusText = "NovaPlayer settings were reset to their defaults.";
+            HardwareAccelerationEnabled = true; RememberPositionEnabled = true; DefaultVolume = 70;
+            StatusText = "Nivora Player settings were reset to their defaults.";
         }
         catch (Exception ex) { StatusText = $"Settings could not be reset: {ex.Message}"; }
     }
@@ -181,7 +165,7 @@ public partial class MainViewModel : ObservableObject
     }
     [RelayCommand] private async Task OpenFolderAsync()
     {
-        var dialog = new OpenFolderDialog { Title = "Add a media folder to NovaPlayer", Multiselect = false };
+        var dialog = new OpenFolderDialog { Title = "Add a media folder to Nivora Player", Multiselect = false };
         if (dialog.ShowDialog() != true) return;
         IsBusy = true; StatusText = "Scanning folder…";
         try { var count = await _library.ScanFolderAsync(dialog.FolderName); await RefreshAsync(); await RefreshSettingsAsync(); StatusText = $"Added {count:N0} media files."; }
@@ -212,7 +196,34 @@ public partial class MainViewModel : ObservableObject
         var preview = await _thumbnails.GetThumbnailAsync(item);
         if (!string.IsNullOrEmpty(preview)) await Application.Current.Dispatcher.InvokeAsync(() => item.ThumbnailPath = preview);
     }
-    [RelayCommand] private void Seek(double delta) { if (Player.Length > 0) Player.Time = Math.Clamp(Player.Time + (long)delta, 0, Player.Length); }
+    [RelayCommand] private void Seek(double delta) => SeekBy(delta);
+
+    public bool SeekBy(double delta)
+    {
+        if (Player.Media is null) return false;
+        var length = Player.Length;
+        if (length <= 0)
+        {
+            StatusText = "This stream does not expose a seekable duration.";
+            return false;
+        }
+
+        var target = Math.Clamp(Player.Time + (long)delta, 0, length);
+        try
+        {
+            Player.Time = target;
+            // Keep the transport readout in sync immediately, including while
+            // paused when the periodic playback timer is not updating it.
+            Position = target;
+            Duration = length;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"The media engine couldn't seek: {ex.Message}";
+            return false;
+        }
+    }
     [RelayCommand] private void SeekBack() => Seek(-10_000);
     [RelayCommand] private void SeekForward() => Seek(10_000);
     [RelayCommand] private void SeekTo(double value) { if (Player.Length > 0 && Math.Abs(Player.Time - (long)value) > 1000) Player.Time = (long)value; }

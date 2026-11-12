@@ -1,70 +1,72 @@
-# NovaPlayer
+# Nivora Player
 
 **Every Frame. Every Sound. Beautifully Played.**
 
-NovaPlayer is a dark, cinematic desktop media player using LibVLC for playback. It pairs a custom Windows 11 WPF interface with a Linux Avalonia target for Arch Linux and CachyOS. Both use the same LibVLC engine family and local SQLite library database.
+Nivora Player is a LibVLC powered media player with a Windows 11 WPF interface and a separate Avalonia desktop client for Linux. Both clients use a local SQLite library and support media formats provided by their LibVLC engine.
 
 ## Downloads
 
-- [Windows x64 setup installer (.exe)](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.3/NovaPlayer-Setup-1.0.3-x64.exe)
-- [Arch Linux / CachyOS x64 package bundle](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.0/NovaPlayer-Arch-x64.zip)
-- [Linux x64 portable payload](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.0/NovaPlayer-linux-x64.tar.gz)
+Releases are published at [GitHub Releases](https://github.com/mansimratst-maker/NovaPlayer/releases). The Windows installer is a per-user `.exe`; the Arch/CachyOS bundle contains a PKGBUILD and Linux application payload.
 
-## Install on Windows 10/11 x64
+## Windows installation
 
-1. Download and run `NovaPlayer-Setup-1.0.1-x64.exe`. Administrator rights are not required.
-2. The installer adds Start menu and optional desktop shortcuts. Open NovaPlayer and add a media folder or choose **Open file**.
-3. To uninstall, use Windows **Settings → Apps → Installed apps** or run `unins000.exe` in `%LOCALAPPDATA%\Programs\NovaPlayer`. Your library, settings, history, and preview cache remain in `%LOCALAPPDATA%\NovaPlayer`.
+1. Download `NivoraPlayer-Setup-1.1.0-x64.exe` from the release page and run it. Administrator access is not required.
+2. Launch Nivora Player from Start. Open a file or add a media folder to the library.
+3. Uninstall from **Settings → Apps → Installed apps**, or run `unins000.exe` in `%LOCALAPPDATA%\Programs\NovaPlayer`.
 
-The installer is self-contained and includes the Windows LibVLC runtime. A portable ZIP is also available on the release page.
+Nivora Player keeps its library and preferences under `%LOCALAPPDATA%\NovaPlayer` to preserve existing data from the previous NovaPlayer name. The app uses the included Windows LibVLC runtime.
 
-## Install on Arch Linux or CachyOS x86_64
+## Arch Linux and CachyOS
 
-Download and extract `NovaPlayer-Arch-x64.zip`. It contains the Linux application payload, a PKGBUILD, and the desktop icon and launcher. In the extracted directory run:
+Download and extract `NivoraPlayer-Arch-x64.zip`, then run:
 
 ```bash
 makepkg -si
 ```
 
-`makepkg` builds and installs a native Arch package. NovaPlayer installs under `/opt/novaplayer` and gets an application-menu entry with the NovaPlayer icon. The package uses the system VLC libraries and plugins, so codec availability depends on the installed VLC build and its enabled modules. FFmpeg is used to generate cached video previews.
+This builds and installs the native package, launcher, and app icon. VLC, its plugins, and FFmpeg are provided by the system.
 
-## Playback and controls
+## Features
 
-- LibVLC handles local video and audio formats, streams supported by the installed engine, track selection, external subtitles, seeking, volume, and speed controls.
-- Add folders to the SQLite library. NovaPlayer generates and caches video-frame previews for library and queue cards. Windows uses LibVLC; Linux uses FFmpeg.
-- Filter Home, Videos, Music, Recently Played, and Favorites from the left navigation.
-- Create named playlists, edit their names and contents, reorder tracks, and play them.
-- Drag queue rows to reorder. Right-click a library item for play, queue, favorite, playlist, file-location, properties, and remove actions.
-- Playback controls reveal on pointer/keyboard activity and fade after 6.5 seconds without activity, including while paused. Fullscreen uses a borderless monitor-sized window; `F` toggles it and `Esc` exits.
-- Picture in picture opens a resizable always-on-top player window.
-
-Keyboard shortcuts: **Space** play/pause, **Left/Right** seek 10 seconds, **Up/Down** volume, **F** fullscreen, **Esc** exit fullscreen, **M** mute, **N/P** next/previous, **Ctrl+O** open files, **Ctrl+Shift+O** add a folder.
+- LibVLC playback for local files and supported network streams.
+- Searchable SQLite media library with folder scanning and preview thumbnails.
+- Queue, playlists, favorites, recent history, position resume, subtitles, audio tracks, playback speed, shuffle, and repeat.
+- Windowed, fullscreen, and picture-in-picture playback.
+- Fullscreen uses the monitor's output dimensions, independent of source resolution. Fit preserves the source aspect ratio; Fill scales to the display and crops excess edges. 480p and 720p sources scale to the selected display normally.
+- Audio-only media gets a dedicated animated visualizer stage instead of the LibVLC blank video output.
+- Mouse activity outside the player surface does not trigger or reset the player control overlay.
 
 ## Build from source
 
-Requirements: .NET 10 SDK, network access for NuGet restore, and VLC development/runtime libraries on Linux.
+Requires the .NET 10 SDK and network access for NuGet restore.
+
+Windows:
 
 ```powershell
 dotnet build NovaPlayer\NovaPlayer.csproj -c Release -r win-x64
-dotnet publish NovaPlayer\NovaPlayer.csproj -c Release -r win-x64 --self-contained true -o dist\NovaPlayer-Windows-x64\NovaPlayer
+dotnet publish NovaPlayer\NovaPlayer.csproj -c Release -r win-x64 --self-contained true -o dist\NivoraPlayer-Windows-x64\NivoraPlayer
 ```
+
+Linux:
 
 ```bash
 dotnet build NovaPlayer.Linux/NovaPlayer.Linux.csproj -c Release
-dotnet publish NovaPlayer.Linux/NovaPlayer.Linux.csproj -c Release -r linux-x64 --self-contained true -o dist/NovaPlayer-Linux-x64
+dotnet publish NovaPlayer.Linux/NovaPlayer.Linux.csproj -c Release -r linux-x64 --self-contained true -o dist/NivoraPlayer-Linux-x64
 ```
+
+The Windows desktop app uses WPF. The Linux desktop client is separate because WPF is Windows-only. This repository does not currently contain an Android app or APK build target.
+
+## Windows security notice
+
+Direct-download Windows executables are not signed yet. Microsoft SmartScreen can show an unknown-publisher warning for a new or unsigned download. A trusted Authenticode certificate or Microsoft Store distribution is required to establish publisher reputation; a self-signed certificate does not solve this for other users. See [Microsoft's SmartScreen guidance](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation).
 
 ## Project layout
 
-- `NovaPlayer/` — Windows WPF client, MVVM playback and settings, vector icon system, LibVLC player, SQLite library, media previews, fullscreen and picture in picture.
-- `NovaPlayer.Linux/` — Linux desktop client using Avalonia and LibVLCSharp.Avalonia; shares the media model, SQLite database, folder scanner, and saved playlists.
-- `packaging/windows/` — per-user Windows install and uninstall scripts.
-- `packaging/arch/` — Arch/CachyOS PKGBUILD and desktop entry.
+- `NovaPlayer/` — Windows WPF application, MVVM, LibVLC, SQLite, media library, fullscreen and PiP.
+- `NovaPlayer.Linux/` — Linux Avalonia desktop client.
+- `packaging/windows/` — Windows installer and maintenance scripts.
+- `packaging/arch/` — Arch/CachyOS PKGBUILD, launcher, and icon.
 
-## Codec and platform notes
+## Third-party software
 
-LibVLC's available formats are determined by the VLC engine, its plugins, hardware, and the media's codec/DRM. NovaPlayer reports playback errors for files the installed engine cannot decode. Windows ships VideoLAN's Windows runtime. Arch/CachyOS use the system VLC package. The Linux UI target is separate because WPF is a Windows-only desktop framework.
-
-## Third-party components
-
-NovaPlayer uses LibVLCSharp and VLC/LibVLC under their respective LGPL terms, Avalonia under the MIT license, and Microsoft.Data.Sqlite. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for licenses and dependency notices.

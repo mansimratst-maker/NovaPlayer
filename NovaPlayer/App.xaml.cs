@@ -41,7 +41,7 @@ public partial class App : Application
         catch (Exception ex)
         {
             TraceStartup(ex.ToString());
-            MessageBox.Show($"NovaPlayer could not start.\n\n{ex.Message}", "NovaPlayer", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"Nivora Player could not start.\n\n{ex.Message}", "Nivora Player", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
     }

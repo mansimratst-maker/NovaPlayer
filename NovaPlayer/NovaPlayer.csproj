@@ -6,9 +6,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AssemblyName>NovaPlayer</AssemblyName>
+    <AssemblyName>NivoraPlayer</AssemblyName>
     <RootNamespace>NovaPlayer</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <PublishSingleFile>false</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

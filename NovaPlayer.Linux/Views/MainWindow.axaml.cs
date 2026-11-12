@@ -46,7 +46,7 @@ public partial class MainWindow : Window
         _fadeOutTimer.Tick += (_, _) =>
         {
             _fadeOutTimer.Stop();
-            if (DateTime.UtcNow - _lastActivity >= TimeSpan.FromSeconds(6.5))
+            if (DateTime.UtcNow - _lastActivity >= TimeSpan.FromSeconds(3.5))
             {
                 QuickControls.IsVisible = false;
                 OverlayHeader.IsVisible = false;
@@ -107,7 +107,7 @@ public partial class MainWindow : Window
 
     private void PollPointer()
     {
-        if (DateTime.UtcNow - _lastActivity >= TimeSpan.FromSeconds(6.5))
+        if (DateTime.UtcNow - _lastActivity >= TimeSpan.FromSeconds(3.5))
         {
             QuickControls.Opacity = 0;
             OverlayHeader.Opacity = 0;
@@ -161,7 +161,7 @@ public partial class MainWindow : Window
         var volume = new Slider { Minimum = 0, Maximum = 100, Value = _vm.Volume, Width = 280 };
         volume.ValueChanged += (_, args) => _vm.Volume = (int)args.NewValue;
         var save = new Button { Content = "Save settings", HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right, Padding = new Thickness(18, 9), Background = Avalonia.Media.Brushes.MediumPurple, Foreground = Avalonia.Media.Brushes.White };
-        var window = new Window { Title = "NovaPlayer · Settings", Width = 440, Height = 350, MinWidth = 400, MinHeight = 300, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#0C1224")), Foreground = Avalonia.Media.Brushes.White };
+        var window = new Window { Title = "Nivora Player · Settings", Width = 440, Height = 350, MinWidth = 400, MinHeight = 300, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#0C1224")), Foreground = Avalonia.Media.Brushes.White };
         save.Click += async (_, _) => { _vm.RememberPosition = remember.IsChecked == true; await _vm.PersistSettingsAsync(acceleration.IsChecked == true); window.Close(); _vm.Status = "Settings saved."; };
         var content = new StackPanel { Margin = new Thickness(26), Spacing = 18 };
         content.Children.Add(new TextBlock { Text = "Settings", FontSize = 24, FontWeight = Avalonia.Media.FontWeight.SemiBold });
@@ -180,7 +180,7 @@ public partial class MainWindow : Window
         var selector = new ComboBox { ItemsSource = _vm.SavedPlaylists, DisplayMemberBinding = new Avalonia.Data.Binding("Name"), MinWidth = 230, PlaceholderText = "Choose a playlist" };
         var tracks = new ListBox { ItemsSource = _vm.SelectedPlaylistItems, DisplayMemberBinding = new Avalonia.Data.Binding("Title"), MinHeight = 140 };
         selector.SelectionChanged += async (_, _) => { await _vm.SelectPlaylistAsync(selector.SelectedItem as SavedPlaylist); name.Text = _vm.SelectedPlaylist?.Name ?? ""; };
-        var window = new Window { Title = "NovaPlayer · Playlists", Width = 520, Height = 560, MinWidth = 420, MinHeight = 440, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#0C1224")), Foreground = Avalonia.Media.Brushes.White };
+        var window = new Window { Title = "Nivora Player · Playlists", Width = 520, Height = 560, MinWidth = 420, MinHeight = 440, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#0C1224")), Foreground = Avalonia.Media.Brushes.White };
         var buttons = new WrapPanel { Orientation = Avalonia.Layout.Orientation.Horizontal };
         Button Make(string label, EventHandler<RoutedEventArgs> action) { var b = new Button { Content = label, Margin = new Thickness(0, 0, 8, 8), Padding = new Thickness(12, 8), Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#222C49")), Foreground = Avalonia.Media.Brushes.White }; b.Click += action; return b; }
         buttons.Children.Add(Make("Create", async (_, _) => { await _vm.CreatePlaylistAsync(name.Text ?? ""); await _vm.RefreshPlaylistsAsync(); selector.SelectedItem = _vm.SavedPlaylists.LastOrDefault(); }));
@@ -232,7 +232,7 @@ public partial class MainWindow : Window
         if (_pipWindow is not null) { _pipWindow.Close(); return; }
         if (_vm.CurrentMedia is null) { _vm.Status = "Open media before entering picture in picture."; return; }
         MainLayoutGrid.Children.Remove(VideoHost);
-        _pipWindow = new Window { Title = $"NovaPlayer · {_vm.CurrentTitle}", Width = 650, Height = 390, MinWidth = 350, MinHeight = 220, Topmost = true, Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#080C19")), Content = VideoHost };
+        _pipWindow = new Window { Title = $"Nivora Player · {_vm.CurrentTitle}", Width = 650, Height = 390, MinWidth = 350, MinHeight = 220, Topmost = true, Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#080C19")), Content = VideoHost };
         _pipWindow.Closed += (_, _) =>
         {
             var window = _pipWindow; _pipWindow = null;

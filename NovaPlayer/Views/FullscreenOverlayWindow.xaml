@@ -1,0 +1,37 @@
+<Window x:Class="NovaPlayer.Views.FullscreenOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:NovaPlayer.Controls"
+        WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        ShowActivated="False" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" Focusable="False" UseLayoutRounding="True"
+        SnapsToDevicePixels="True" PreviewKeyDown="FullscreenOverlay_PreviewKeyDown">
+    <!-- A separate transparent HWND is required: LibVLC's video HWND can cover
+         WPF visuals hosted in VideoView.Content in fullscreen mode. -->
+    <Grid x:Name="OverlaySurface" Background="{x:Null}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid x:Name="PlaybackFeedback" Grid.Row="0" IsHitTestVisible="False"
+              HorizontalAlignment="Center" VerticalAlignment="Center"
+              Visibility="Collapsed" Opacity="0" RenderTransformOrigin=".5,.5">
+            <Grid.RenderTransform><ScaleTransform x:Name="FeedbackScale" ScaleX=".82" ScaleY=".82"/></Grid.RenderTransform>
+            <Border Width="226" MinHeight="164" CornerRadius="32" Padding="24,22"
+                    Background="#7D253557" BorderBrush="#C2B8A2FF" BorderThickness="1.2">
+                <Border.Effect><DropShadowEffect Color="#815BFF" BlurRadius="40" ShadowDepth="0" Opacity=".52"/></Border.Effect>
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border Width="62" Height="62" CornerRadius="31" HorizontalAlignment="Center"
+                            Background="#6A714BFF" BorderBrush="#C2B2FF" BorderThickness="1">
+                        <controls:NovaIcon x:Name="FeedbackIcon" Kind="play" Size="27" Stroke="White"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock x:Name="FeedbackTitle" Text="Playing" FontSize="17" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,12,0,2"/>
+                    <TextBlock x:Name="FeedbackDetail" Text="" FontSize="11" Foreground="#C4CDE5"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

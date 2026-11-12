@@ -1,5 +1,5 @@
-pkgname=novaplayer-bin
-pkgver=1.0.0
+pkgname=nivoraplayer-bin
+pkgver=1.1.0
 pkgrel=1
 pkgdesc='A cinematic LibVLC media player with a midnight purple-blue desktop UI'
 arch=('x86_64')
@@ -7,13 +7,13 @@ url='https://github.com/mansimratst-maker/NovaPlayer'
 license=('MIT')
 depends=('vlc' 'ffmpeg' 'zlib' 'fontconfig' 'libx11' 'libice' 'libsm')
 options=('!strip')
-source=('NovaPlayer-linux-x64.tar.gz' 'novaplayer.desktop' 'novaplayer.png')
-sha256sums=('4afbb3a745968a68b338a2b8793d1b01e8fa0300835079c32cdac7de9a5e92a8' '1b9b7cf76c776d35e4cc913b4035d43e019b7dc803f5ffcfb3a465738c5ed8fa' 'd8af21221cada1609c74b80af119ef016fed62036ce071784bb2c8319b62ee10')
+source=('NivoraPlayer-linux-x64.tar.gz' 'novaplayer.desktop' 'novaplayer.png')
+sha256sums=('SKIP' '1b9b7cf76c776d35e4cc913b4035d43e019b7dc803f5ffcfb3a465738c5ed8fa' 'd8af21221cada1609c74b80af119ef016fed62036ce071784bb2c8319b62ee10')
 
 package() {
-  install -dm755 "$pkgdir/opt/novaplayer"
-  tar -xzf "$srcdir/NovaPlayer-linux-x64.tar.gz" --strip-components=1 -C "$pkgdir/opt/novaplayer"
-  chmod 755 "$pkgdir/opt/novaplayer/NovaPlayer.Linux"
+  install -dm755 "$pkgdir/opt/nivoraplayer"
+  tar -xzf "$srcdir/NivoraPlayer-linux-x64.tar.gz" --strip-components=1 -C "$pkgdir/opt/nivoraplayer"
+  chmod 755 "$pkgdir/opt/nivoraplayer/NivoraPlayer.Linux"
   install -Dm644 "$srcdir/novaplayer.desktop" "$pkgdir/usr/share/applications/novaplayer.desktop"
   install -Dm644 "$srcdir/novaplayer.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/novaplayer.png"
 }
