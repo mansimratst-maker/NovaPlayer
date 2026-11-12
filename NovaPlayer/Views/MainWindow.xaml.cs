@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     private GridLength _restoreSidebarColumn, _restoreContentColumn, _restoreTopBarRow, _restorePlaylistColumn;
     private BindingBase? _restorePlaylistColumnBinding;
     private GridLength _restorePlayerRow, _restoreLibraryRow;
+    private double _restoreLibraryRowMinHeight;
     private Thickness _restoreContentMargin, _restorePlayerMargin, _restoreRootBorderThickness, _restorePlayerBorderThickness;
     private CornerRadius _restoreRootCornerRadius, _restorePlayerCornerRadius;
     private Visibility _restoreSidebarVisibility, _restoreTopBarVisibility, _restoreLibraryVisibility, _restorePlaylistVisibility;
@@ -38,6 +39,7 @@ public partial class MainWindow : Window
     [DllImport("user32.dll")] private static extern nint MonitorFromWindow(nint hwnd, uint flags);
     [DllImport("user32.dll", CharSet = CharSet.Auto)] private static extern bool GetMonitorInfo(nint monitor, ref MONITORINFO info);
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT point);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool GetWindowRect(nint hwnd, out RECT rect);
     [DllImport("user32.dll", SetLastError = true)] private static extern bool SetWindowPos(nint hwnd, nint insertAfter, int x, int y, int cx, int cy, uint flags);
     private readonly DispatcherTimer _controlTimer = new() { Interval = TimeSpan.FromMilliseconds(120) };
     private POINT _lastCursorPosition;
@@ -100,6 +102,7 @@ public partial class MainWindow : Window
             PlayerGrid.Margin = _restorePlayerMargin;
             PlayerGrid.RowDefinitions[0].Height = _restorePlayerRow;
             PlayerGrid.RowDefinitions[1].Height = _restoreLibraryRow;
+            PlayerGrid.RowDefinitions[1].MinHeight = _restoreLibraryRowMinHeight;
             PlayerFrame.BorderThickness = _restorePlayerBorderThickness;
             PlayerFrame.CornerRadius = _restorePlayerCornerRadius;
             SidebarPanel.Visibility = _restoreSidebarVisibility;
@@ -150,6 +153,7 @@ public partial class MainWindow : Window
         _restorePlayerMargin = PlayerGrid.Margin;
         _restorePlayerRow = PlayerGrid.RowDefinitions[0].Height;
         _restoreLibraryRow = PlayerGrid.RowDefinitions[1].Height;
+        _restoreLibraryRowMinHeight = PlayerGrid.RowDefinitions[1].MinHeight;
         _restoreSidebarVisibility = SidebarPanel.Visibility;
         _restoreTopBarVisibility = TopBar.Visibility;
         _restoreLibraryVisibility = LibraryPane.Visibility;
@@ -193,6 +197,9 @@ public partial class MainWindow : Window
         PlayerGrid.Margin = new Thickness(0);
         PlayerGrid.RowDefinitions[0].Height = new GridLength(1, GridUnitType.Star);
         PlayerGrid.RowDefinitions[1].Height = new GridLength(0);
+        // The library row's normal-layout MinHeight otherwise reserves 130 DIPs
+        // even with a zero height, producing the black strip beneath fullscreen video.
+        PlayerGrid.RowDefinitions[1].MinHeight = 0;
         LibraryPane.Visibility = Visibility.Collapsed;
         PlayerFrame.BorderThickness = new Thickness(0);
         PlayerFrame.CornerRadius = new CornerRadius(0);
@@ -201,13 +208,29 @@ public partial class MainWindow : Window
         Top = bounds.Top / Math.Max(0.5, dpi.DpiScaleY);
         Width = Math.Max(1, bounds.Right - bounds.Left) / Math.Max(0.5, dpi.DpiScaleX);
         Height = Math.Max(1, bounds.Bottom - bounds.Top) / Math.Max(0.5, dpi.DpiScaleY);
-        SetWindowPos(new WindowInteropHelper(this).Handle, HwndTopmost, bounds.Left, bounds.Top,
-            bounds.Right - bounds.Left, bounds.Bottom - bounds.Top,
-            SwpNoOwnerZOrder | SwpFrameChanged | SwpShowWindow);
         _ = Dispatcher.BeginInvoke(new Action(() =>
         {
-            ApplyVideoScale();
-            ShowFullscreenControls();
+            // Apply the physical monitor rectangle after WPF has completed its
+            // DPI-aware layout. Applying it before layout lets WPF's later DPI
+            // pass shrink the client area (leaving a black strip at the bottom).
+            UpdateLayout();
+            var handle = new WindowInteropHelper(this).Handle;
+            var monitorWidth = bounds.Right - bounds.Left;
+            var monitorHeight = bounds.Bottom - bounds.Top;
+            SetWindowPos(handle, HwndTopmost, bounds.Left, bounds.Top, monitorWidth, monitorHeight,
+                SwpNoOwnerZOrder | SwpFrameChanged | SwpShowWindow);
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                UpdateLayout();
+                if (GetWindowRect(handle, out var actual) &&
+                    (actual.Left != bounds.Left || actual.Top != bounds.Top || actual.Right != bounds.Right || actual.Bottom != bounds.Bottom))
+                    SetWindowPos(handle, HwndTopmost, bounds.Left, bounds.Top, monitorWidth, monitorHeight,
+                        SwpNoOwnerZOrder | SwpFrameChanged | SwpShowWindow);
+                UpdateLayout();
+                _fullscreenCropGeometry = $"{Math.Max(1, (int)PrimaryVideoView.ActualWidth)}:{Math.Max(1, (int)PrimaryVideoView.ActualHeight)}";
+                ApplyVideoScale();
+                ShowFullscreenControls();
+            }), DispatcherPriority.ContextIdle);
         }), DispatcherPriority.Loaded);
         Activate();
         Focus();

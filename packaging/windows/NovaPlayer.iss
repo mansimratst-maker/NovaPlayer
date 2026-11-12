@@ -1,5 +1,5 @@
 #define AppName "NovaPlayer"
-#define AppVersion "1.0.1"
+#define AppVersion "1.0.3"
 #define SourceDir "..\..\dist\NovaPlayer-Windows-x64\NovaPlayer"
 
 [Setup]
@@ -17,7 +17,7 @@ OutputDir=..\..\dist
 OutputBaseFilename=NovaPlayer-Setup-{#AppVersion}-x64
 SetupIconFile=..\..\NovaPlayer\Assets\novaplayer.ico
 UninstallDisplayIcon={app}\NovaPlayer.exe
-Compression=lzma2/ultra64
+Compression=lzma2/fast
 SolidCompression=yes
 WizardStyle=modern
 CloseApplications=yes

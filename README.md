@@ -6,7 +6,7 @@ NovaPlayer is a dark, cinematic desktop media player using LibVLC for playback. 
 
 ## Downloads
 
-- [Windows x64 setup installer (.exe)](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.1/NovaPlayer-Setup-1.0.1-x64.exe)
+- [Windows x64 setup installer (.exe)](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.3/NovaPlayer-Setup-1.0.3-x64.exe)
 - [Arch Linux / CachyOS x64 package bundle](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.0/NovaPlayer-Arch-x64.zip)
 - [Linux x64 portable payload](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.0/NovaPlayer-linux-x64.tar.gz)
 
