@@ -234,6 +234,13 @@ public partial class MainWindow : Window
     }
     private void Window_MouseMove(object sender, MouseEventArgs e)
     {
+        // Fullscreen uses only the global cursor poll below. Routed WPF MouseMove
+        // can be synthesized when VLC and the overlay exchange native hit testing.
+        if (_vm.IsFullscreen) return;
+        if (!IsPointerOverVideoSurface()) return;
+        if (!GetCursorPos(out var position)) return;
+        if (Math.Abs(position.X - _lastCursorPosition.X) < 3 && Math.Abs(position.Y - _lastCursorPosition.Y) < 3) return;
+        _lastCursorPosition = position;
         RegisterPlayerInteraction();
     }
 
@@ -341,7 +348,9 @@ public partial class MainWindow : Window
     {
         if (_vm.CurrentMedia is null) { _controlTimer.Stop(); return; }
         if (!GetCursorPos(out var position)) return;
-        if (position.X != _lastCursorPosition.X || position.Y != _lastCursorPosition.Y)
+        // WPF/VLC can report a one-pixel cursor wobble while the native video
+        // child and overlay exchange hit-testing. Require deliberate movement.
+        if (Math.Abs(position.X - _lastCursorPosition.X) >= 3 || Math.Abs(position.Y - _lastCursorPosition.Y) >= 3)
         {
             _lastCursorPosition = position;
             _lastControlActivity = DateTime.UtcNow;
@@ -350,6 +359,7 @@ public partial class MainWindow : Window
         }
         else if (DateTime.UtcNow - _lastControlActivity >= TimeSpan.FromSeconds(6.5))
         {
+            _lastControlActivity = DateTime.UtcNow;
             if (_vm.IsFullscreen)
             {
                 _vm.HideFullscreenControls();

@@ -6,17 +6,17 @@ NovaPlayer is a dark, cinematic desktop media player using LibVLC for playback. 
 
 ## Downloads
 
-- [Windows x64 installer bundle](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.0/NovaPlayer-Windows-x64.zip)
+- [Windows x64 setup installer (.exe)](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.1/NovaPlayer-Setup-1.0.1-x64.exe)
 - [Arch Linux / CachyOS x64 package bundle](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.0/NovaPlayer-Arch-x64.zip)
 - [Linux x64 portable payload](https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.0.0/NovaPlayer-linux-x64.tar.gz)
 
 ## Install on Windows 10/11 x64
 
-1. Download and extract `NovaPlayer-Windows-x64.zip`.
-2. Run `Install-NovaPlayer.ps1` from the extracted folder. It installs under `%LOCALAPPDATA%\Programs\NovaPlayer` and adds a Start menu shortcut. Administrator rights are not required.
-3. Open NovaPlayer from the Start menu. Add a media folder or choose **Open file**.
+1. Download and run `NovaPlayer-Setup-1.0.1-x64.exe`. Administrator rights are not required.
+2. The installer adds Start menu and optional desktop shortcuts. Open NovaPlayer and add a media folder or choose **Open file**.
+3. To uninstall, use Windows **Settings → Apps → Installed apps** or run `unins000.exe` in `%LOCALAPPDATA%\Programs\NovaPlayer`. Your library, settings, history, and preview cache remain in `%LOCALAPPDATA%\NovaPlayer`.
 
-The package is self-contained and includes the Windows LibVLC runtime. To remove the app, run `Uninstall-NovaPlayer.ps1`. Your library, settings, history, and preview cache remain in `%LOCALAPPDATA%\NovaPlayer`.
+The installer is self-contained and includes the Windows LibVLC runtime. A portable ZIP is also available on the release page.
 
 ## Install on Arch Linux or CachyOS x86_64
 
