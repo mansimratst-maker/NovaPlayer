@@ -8,7 +8,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>NivoraPlayer</AssemblyName>
     <RootNamespace>NovaPlayer</RootNamespace>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <PublishSingleFile>false</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

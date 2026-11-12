@@ -614,10 +614,12 @@ public partial class MainWindow : Window
         SettingsPage.Visibility = settings ? Visibility.Visible : Visibility.Collapsed;
         PlaylistsPage.Visibility = playlists ? Visibility.Visible : Visibility.Collapsed;
         PlayerGrid.Visibility = hidePlayer ? Visibility.Collapsed : Visibility.Visible;
-        // LibVLC uses a native child HWND, which can remain visible above WPF
-        // pages even after their parent grid is collapsed. Hide the host itself
-        // when navigating to Settings or Playlists; playback can continue audio-only.
+        PlayerFrame.Visibility = hidePlayer ? Visibility.Collapsed : Visibility.Visible;
+        // Keep every player visual out of full-page views. The opaque page surface
+        // also prevents media content bleeding through the translucent app shell.
         PrimaryVideoView.Visibility = hidePlayer ? Visibility.Collapsed : Visibility.Visible;
+        if (hidePlayer && _fullscreenOverlayWindow is not null) DetachFullscreenOverlay();
+        if (hidePlayer && _pipWindow is not null) _pipWindow.Close();
         PlaylistPanel.Visibility = hidePlayer || !_vm.IsPlaylistVisible ? Visibility.Collapsed : Visibility.Visible;
     }
     private void AnimatePlaybackOverlay(UIElement element, bool visible)

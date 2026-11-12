@@ -10,7 +10,7 @@ Releases are published at [GitHub Releases](https://github.com/mansimratst-maker
 
 ## Windows installation
 
-1. Download `NivoraPlayer-Setup-1.1.0-x64.exe` from the release page and run it. Administrator access is not required.
+1. Download `NivoraPlayer-Setup-1.1.1-x64.exe` from the release page and run it. Administrator access is not required.
 2. Launch Nivora Player from Start. Open a file or add a media folder to the library.
 3. Uninstall from **Settings → Apps → Installed apps**, or run `unins000.exe` in `%LOCALAPPDATA%\Programs\NovaPlayer`.
 

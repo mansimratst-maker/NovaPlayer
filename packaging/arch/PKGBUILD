@@ -1,5 +1,5 @@
 pkgname=nivoraplayer-bin
-pkgver=1.1.0
+pkgver=1.1.1
 pkgrel=1
 pkgdesc='A cinematic LibVLC media player with a midnight purple-blue desktop UI'
 arch=('x86_64')
@@ -7,8 +7,12 @@ url='https://github.com/mansimratst-maker/NovaPlayer'
 license=('MIT')
 depends=('vlc' 'ffmpeg' 'zlib' 'fontconfig' 'libx11' 'libice' 'libsm')
 options=('!strip')
-source=('NivoraPlayer-linux-x64.tar.gz' 'novaplayer.desktop' 'novaplayer.png')
-sha256sums=('SKIP' '1b9b7cf76c776d35e4cc913b4035d43e019b7dc803f5ffcfb3a465738c5ed8fa' 'd8af21221cada1609c74b80af119ef016fed62036ce071784bb2c8319b62ee10')
+source=(
+  'https://github.com/mansimratst-maker/NovaPlayer/releases/download/v1.1.1/NivoraPlayer-linux-x64.tar.gz'
+  'https://raw.githubusercontent.com/mansimratst-maker/NovaPlayer/v1.1.1/packaging/arch/novaplayer.desktop'
+  'https://raw.githubusercontent.com/mansimratst-maker/NovaPlayer/v1.1.1/NovaPlayer/Assets/novaplayer.png'
+)
+sha256sums=('03b3a85865ff7757389dc1cdfd772d44db60e98291192405e488f8e2193c03ee' 'c3389e8bd7848552d4630fc73944f7cb4f2ff2c8a6425855063dc34bb56383f0' 'd8af21221cada1609c74b80af119ef016fed62036ce071784bb2c8319b62ee10')
 
 package() {
   install -dm755 "$pkgdir/opt/nivoraplayer"

@@ -1,5 +1,5 @@
 #define AppName "Nivora Player"
-#define AppVersion "1.1.0"
+#define AppVersion "1.1.1"
 #define SourceDir "..\..\dist\NivoraPlayer-Windows-x64\NivoraPlayer"
 
 [Setup]
